@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Energy Forecasting Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            background: linear-gradient(135deg, #1E88E5, #1976D2);
+            color: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .tabs {
+            display: flex;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-right: 1px solid #e0e0e0;
+        }
+        
+        .tab:last-child {
+            border-right: none;
+        }
+        
+        .tab:hover {
+            background: #e3f2fd;
+        }
+        
+        .tab.active {
+            background: #1E88E5;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #1E88E5;
+            box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.1);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #1E88E5, #1976D2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(30, 136, 229, 0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(30, 136, 229, 0.4);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .result-container {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #1E88E5;
+        }
+        
+        .metric {
+            display: inline-block;
+            background: white;
+            padding: 20px;
+            margin: 10px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            min-width: 150px;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1E88E5;
+        }
+        
+        .metric-label {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        
+        .chart-container {
+            margin-top: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #1E88E5;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #f44336;
+            margin: 15px 0;
+        }
+        
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4caf50;
+            margin: 15px 0;
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .metric {
+                margin: 5px;
+                min-width: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Energy Forecasting Dashboard</h1>
+            <p>Advanced Machine Learning Predictions for Energy Consumption</p>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('single')">Single Prediction</button>
+            <button class="tab" onclick="showTab('range')">Date Range Prediction</button>
+            <button class="tab" onclick="showTab('analysis')">Analysis</button>
+            <button class="tab" onclick="showTab('importance')">Feature Importance</button>
+        </div>
+        
+        <!-- Single Prediction Tab -->
+        <div id="single" class="tab-content active">
+            <h2>Single DateTime Prediction</h2>
+            <form id="singlePredictionForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="single_date">Select Date:</label>
+                        <input type="date" id="single_date" name="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="single_time">Select Time:</label>
+                        <input type="time" id="single_time" name="time" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn">Make Prediction</button>
+            </form>
+            
+            <div class="loading" id="singleLoading">
+                <div class="spinner"></div>
+                <p>Making prediction...</p>
+            </div>
+            
+            <div id="singleResult"></div>
+        </div>
+        
+        <!-- Range Prediction Tab -->
+        <div id="range" class="tab-content">
+            <h2>Date Range Prediction</h2>
+            <form id="rangePredictionForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="start_date">Start Date:</label>
+                        <input type="date" id="start_date" name="start_date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="end_date">End Date:</label>
+                        <input type="date" id="end_date" name="end_date" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="frequency">Frequency:</label>
+                    <select id="frequency" name="frequency" required>
+                        <option value="H">Hourly</option>
+                        <option value="D">Daily</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn">Generate Predictions</button>
+            </form>
+            
+            <div class="loading" id="rangeLoading">
+                <div class="spinner"></div>
+                <p>Generating predictions...</p>
+            </div>
+            
+            <div id="rangeResult"></div>
+        </div>
+        
+        <!-- Analysis Tab -->
+        <div id="analysis" class="tab-content">
+            <h2>Model Analysis</h2>
+            <form id="analysisForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="analysis_start">Analysis Start Date:</label>
+                        <input type="date" id="analysis_start" name="start_date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="analysis_end">Analysis End Date:</label>
+                        <input type="date" id="analysis_end" name="end_date" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn">Generate Analysis</button>
+            </form>
+            
+            <div class="loading" id="analysisLoading">
+                <div class="spinner"></div>
+                <p>Generating analysis...</p>
+            </div>
+            
+            <div id="analysisResult"></div>
+        </div>
+        
+        <!-- Feature Importance Tab -->
+        <div id="importance" class="tab-content">
+            <h2>Feature Importance Analysis</h2>
+            <p>Discover which features have the most impact on energy consumption predictions.</p>
+            <button type="button" class="btn" onclick="loadFeatureImportance()">Load Feature Importance</button>
+            
+            <div class="loading" id="importanceLoading">
+                <div class="spinner"></div>
+                <p>Loading feature importance...</p>
+            </div>
+            
+            <div id="importanceResult"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Set default dates
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+            
+            // Set default values
+            document.getElementById('single_date').value = todayStr;
+            document.getElementById('single_time').value = '14:00';
+            document.getElementById('start_date').value = todayStr;
+            document.getElementById('end_date').value = tomorrowStr;
+            document.getElementById('analysis_start').value = todayStr;
+            document.getElementById('analysis_end').value = tomorrowStr;
+        });
+        
+        // Tab switching
+        function showTab(tabName) {
+            // Hide all tabs
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(tab => tab.classList.remove('active'));
+            
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        // Single Prediction Form
+        document.getElementById('singlePredictionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const date = document.getElementById('single_date').value;
+            const time = document.getElementById('single_time').value;
+            const datetime = `${date} ${time}:00`;
+            
+            showLoading('singleLoading');
+            
+            fetch('/api/predict/single', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    datetime: datetime
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading('singleLoading');
+                displaySingleResult(data);
+            })
+            .catch(error => {
+                hideLoading('singleLoading');
+                displayError('singleResult', 'Error making prediction: ' + error.message);
+            });
+        });
+        
+        // Range Prediction Form
+        document.getElementById('rangePredictionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            const frequency = document.getElementById('frequency').value;
+            
+            showLoading('rangeLoading');
+            
+            fetch('/api/predict/range', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    start_date: startDate,
+                    end_date: endDate,
+                    frequency: frequency
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading('rangeLoading');
+                displayRangeResult(data);
+            })
+            .catch(error => {
+                hideLoading('rangeLoading');
+                displayError('rangeResult', 'Error generating predictions: ' + error.message);
+            });
+        });
+        
+        // Analysis Form
+        document.getElementById('analysisForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const startDate = document.getElementById('analysis_start').value;
+            const endDate = document.getElementById('analysis_end').value;
+            
+            showLoading('analysisLoading');
+            
+            fetch('/api/analysis', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    start_date: startDate,
+                    end_date: endDate
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading('analysisLoading');
+                displayAnalysisResult(data);
+            })
+            .catch(error => {
+                hideLoading('analysisLoading');
+                displayError('analysisResult', 'Error generating analysis: ' + error.message);
+            });
+        });
+        
+        // Feature Importance
+        function loadFeatureImportance() {
+            showLoading('importanceLoading');
+            
+            fetch('/api/analysis/feature-importance')
+            .then(response => response.json())
+            .then(data => {
+                hideLoading('importanceLoading');
+                displayFeatureImportance(data);
+            })
+            .catch(error => {
+                hideLoading('importanceLoading');
+                displayError('importanceResult', 'Error loading feature importance: ' + error.message);
+            });
+        }
+        
+        // Helper functions
+        function showLoading(elementId) {
+            document.getElementById(elementId).classList.add('show');
+        }
+        
+        function hideLoading(elementId) {
+            document.getElementById(elementId).classList.remove('show');
+        }
+        
+        function displayError(containerId, message) {
+            document.getElementById(containerId).innerHTML = `
+                <div class="error">
+                    <strong>Error:</strong> ${message}
+                </div>
+            `;
+        }
+        
+        function displaySuccess(containerId, message) {
+            document.getElementById(containerId).innerHTML = `
+                <div class="success">
+                    <strong>Success:</strong> ${message}
+                </div>
+            `;
+        }
+        
+        function displaySingleResult(data) {
+            if (data.error) {
+                displayError('singleResult', data.error);
+                return;
+            }
+            
+            // Extract prediction data
+            const predictionData = data.prediction;
+            const predictionValue = predictionData.prediction;
+            const datetime = predictionData.datetime;
+            
+            const html = `
+                <div class="result-container">
+                    <div class="success">Prediction completed successfully!</div>
+                    <div class="metric">
+                        <div class="metric-value">${predictionValue.toFixed(2)}</div>
+                        <div class="metric-label">MW Predicted</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${datetime}</div>
+                        <div class="metric-label">DateTime</div>
+                    </div>
+                    ${data.chart ? `
+                    <div class="chart-container">
+                        <h3>Prediction Visualization</h3>
+                        <img src="data:image/png;base64,${data.chart}" alt="Prediction Chart" style="max-width: 100%; height: auto;">
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+            document.getElementById('singleResult').innerHTML = html;
+        }
+        
+        function displayRangeResult(data) {
+            if (data.error) {
+                displayError('rangeResult', data.error);
+                return;
+            }
+            
+            // Use summary statistics from API response
+            const summary = data.summary;
+            const avgPrediction = summary.mean;
+            const maxPrediction = summary.max;
+            const minPrediction = summary.min;
+            
+            const html = `
+                <div class="result-container">
+                    <div class="success">Range predictions generated successfully!</div>
+                    <div class="metric">
+                        <div class="metric-value">${avgPrediction.toFixed(2)}</div>
+                        <div class="metric-label">Average MW</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${maxPrediction.toFixed(2)}</div>
+                        <div class="metric-label">Peak MW</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${minPrediction.toFixed(2)}</div>
+                        <div class="metric-label">Minimum MW</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${summary.count}</div>
+                        <div class="metric-label">Data Points</div>
+                    </div>
+                    ${data.chart ? `
+                    <div class="chart-container">
+                        <h3>Range Prediction Chart</h3>
+                        <img src="data:image/png;base64,${data.chart}" alt="Range Prediction Chart" style="max-width: 100%; height: auto;">
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+            document.getElementById('rangeResult').innerHTML = html;
+        }
+        
+        function displayAnalysisResult(data) {
+            if (data.error) {
+                displayError('analysisResult', data.error);
+                return;
+            }
+            
+            let html = `
+                <div class="result-container">
+                    <div class="success">Analysis completed successfully!</div>
+            `;
+            
+            // Add charts if available
+            if (data.hourly_pattern_chart) {
+                html += `
+                    <div class="chart-container">
+                        <h3>Hourly Pattern Analysis</h3>
+                        <img src="data:image/png;base64,${data.hourly_pattern_chart}" alt="Hourly Pattern" style="max-width: 100%; height: auto;">
+                    </div>
+                `;
+            }
+            
+            if (data.weekly_pattern_chart) {
+                html += `
+                    <div class="chart-container">
+                        <h3>Weekly Pattern Analysis</h3>
+                        <img src="data:image/png;base64,${data.weekly_pattern_chart}" alt="Weekly Pattern" style="max-width: 100%; height: auto;">
+                    </div>
+                `;
+            }
+            
+            html += `</div>`;
+            document.getElementById('analysisResult').innerHTML = html;
+        }
+        
+        function displayFeatureImportance(data) {
+            if (data.error) {
+                displayError('importanceResult', data.error);
+                return;
+            }
+            
+            const html = `
+                <div class="result-container">
+                    <div class="success">Feature importance loaded successfully!</div>
+                    ${data.chart ? `
+                    <div class="chart-container">
+                        <h3>Feature Importance Chart</h3>
+                        <img src="data:image/png;base64,${data.chart}" alt="Feature Importance Chart" style="max-width: 100%; height: auto;">
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+            document.getElementById('importanceResult').innerHTML = html;
+        }
+    </script>
+</body>
+</html>

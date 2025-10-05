@@ -1,0 +1,48 @@
+
+# Virtual Environment
+env/
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints/
+
+# Model Files (large binary files)
+energy_forecasting_app/*.pkl
+energy_forecasting_app/utils/*.pkl
+
+# Data Files
+model_training/AEP_hourly.csv
+modev2/AEP_hourly.csv
+
+# IDE Files
+.vscode/
+.idea/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary Files
+*.tmp
+*.temp
+
+# Flask Instance
+energy_forecasting_app/flask_api/instance/
+
+# Streamlit Cache
+.streamlit/
+
+# Output Images/Charts (if generated)
+*.png
+*.jpg
+*.jpeg
+
+# Environment Variables
+.env
